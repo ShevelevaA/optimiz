@@ -915,6 +915,8 @@ void TDiagram::Func(){ //функция
 		pt1 = pt;
 	}
 
+	string str1 = (const char*)(idbuf);
+	triads -> push_back("proc " + str1);
 
 	int i = 0;
 	uk1 = sc -> GetUK();
@@ -952,9 +954,9 @@ void TDiagram::Func(){ //функция
 	pt = pt -> Right;
 	pt -> n -> position = sc -> GetUK();	//запомнить указатель в теле функции
 
-	string str1 = (const char*)(idbuf);
+	//string str1 = (const char*)(idbuf);
 
-	triads -> push_back("proc " + str1);
+	//triads -> push_back("proc " + str1);
 	triads -> push_back("push 0");
 	triads -> push_back("call prolog");
 	kolTr += 3;
@@ -1026,6 +1028,8 @@ int TDiagram::SpisokFormPerem(){ //список формальныхх переменных
 	int t, uk1,  str, simv;
 	int i = 0;
 	DataType type;
+	string mass[20];
+	int j = 0;
 	uk1 = sc -> GetUK();	
 
 	str=sc->GetStroka();
@@ -1042,6 +1046,7 @@ int TDiagram::SpisokFormPerem(){ //список формальныхх переменных
 		t = sc -> Scaner(l);
 		if (t != Type_Id)
 			sc -> PrintError("Ожидался идентификатор", l);
+		mass[j++] = l;
 		if (! pt -> sem_override(l))
 			pt = pt -> sem_add_var(l, type);
 		uk1 = sc -> GetUK();
@@ -1049,6 +1054,10 @@ int TDiagram::SpisokFormPerem(){ //список формальныхх переменных
 		i++;
 	}
 	while(t == Type_Zapyat);
+
+	for(int k = j-1; k > -1; k--)
+		triads -> push_back("pop " + mass[k]);
+
 	sc -> PutUK(uk1);
 	sc->PutStroka(str);
 	sc->PutSimvol(simv);
@@ -1090,7 +1099,7 @@ int TDiagram::SpisokFormPerem(){ //список формальныхх переменных
 
 	string assign = Vyrazh();
 
-	string str4 = (const char*)(pt -> n -> id);
+	string str4 = (const char*)(tree -> n -> id);
 	triads -> push_back("= "+ str4 + " " + assign);
 	kolTr += 1;
 	/*
@@ -1134,7 +1143,7 @@ int TDiagram::SpisokFormPerem(){ //список формальныхх переменных
 
 }
 
-/// ЕЩЕ ЖЕ ЧТО-ТО ДБ ?????????????????? вызов ф-ии
+
 void TDiagram::VyzovFunc(){ //вызов функции
 
 	// ---- идентификатор --- ( --- |список фактических переменных| ---) --- ; ----
@@ -1226,6 +1235,7 @@ int TDiagram::SpisokFactPerem(char varname[]){ //список фактических переменных
 	str=sc->GetStroka();
 	simv=sc->GetSimvol();
 	Tree * tr1, *pt_old;
+	string data1;
 
 	pt_old = pt;
 
@@ -1240,7 +1250,9 @@ int TDiagram::SpisokFactPerem(char varname[]){ //список фактических переменных
 		// без проверки типа
 		if(!num){
 			//op2 = 
-			Vyrazh();
+			data1 = Vyrazh();
+
+			triads -> push_back("push " + data1);
 			//tr1->Left->n->dataValue = op2->dataValue;
 
 			//t = sc -> Scaner(l);
@@ -1256,7 +1268,9 @@ int TDiagram::SpisokFactPerem(char varname[]){ //список фактических переменных
 
 		if(num){
 			//op2 = 
-			Vyrazh();
+			data1 = Vyrazh();
+
+			triads -> push_back("push " + data1);
 			//tr1->Left->n->dataValue = op2->dataValue;
 
 		}
@@ -1402,7 +1416,7 @@ void TDiagram::Case_(){ //case
 			sc->PutSimvol(simv);
 
 			triads -> push_back("== " + znach + " " + zn);
-			triads -> push_back("if " + to_string(triads -> size() + 2) + " " + to_string(0)); // заготовка
+			triads -> push_back("if ( " + to_string(triads -> size() + 2) + ") (" + to_string(0) + " )"); // заготовка
 			kolTr += 2;
 
 			old_size = triads -> size() ;
@@ -1415,7 +1429,7 @@ void TDiagram::Case_(){ //case
 
 			new_size = triads -> size() ;
 
-			znch = "if " + to_string(old_size + 1)  + " " + to_string(new_size + 2);
+			znch = "if ( " + to_string(old_size + 1)  + " )" +  " ( "  + to_string(new_size + 2) + + " )" ;
 
 			setElemTriads(old_size, znch);
 
@@ -1428,7 +1442,7 @@ void TDiagram::Case_(){ //case
 			if (t!=Type_Break) sc->PrintError("ожидался break",l);
 
 
-			triads -> push_back("goto " + to_string(0));
+			triads -> push_back("goto ( " + to_string(0) + " )");
 			kolTr += 1;
 
 			massEnd[i++] = triads -> size() ;
@@ -1477,10 +1491,10 @@ void TDiagram::Case_(){ //case
 		t=sc->Scaner(l);
 		if (t!=Type_Break) sc->PrintError("ожидался break",l);
 		
-		triads -> push_back("goto " + to_string(triads -> size() + 1));
+		triads -> push_back("nop");
 
-		numbEnd = triads -> size() + 1 ;
-		znch = "goto " + to_string(numbEnd);
+		numbEnd = triads -> size();
+		znch = "goto ( " + to_string(numbEnd) + " )";
 
 	
 		for(int j = 0; j < i; j++){
